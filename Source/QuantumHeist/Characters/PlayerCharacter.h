@@ -32,8 +32,6 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractSignature, APlayerCharacter*, player);
 	UPROPERTY(BlueprintAssignable, Category = "Interactable")
 	FOnInteractSignature _OnInteract;
-	UPROPERTY(BlueprintAssignable, Category = "Interactable")
-	FOnInteractSignature _OnStopInteract;
 
 protected:
 	// Called when the game starts or when spawned
@@ -73,20 +71,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Context Player")
 	class UInputAction* InteractAction;
-
-
-	// Input Context & Actions for Interactables
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Context Interactable")
-	class UInputMappingContext* InteractableContext;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Context Interactable")
-	class UInputAction* StopInteractAction;
 	
-
-
-	void SwitchToMappingContext(UInputMappingContext* context);
-
 
 	// Camera Management
 	FVector _OriginalCameraPosition{};
@@ -98,12 +83,20 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	// Input Context Functions
-	//void BindAction(const UInputAction* action, ETriggerEvent triggerEvent, auto object, auto function);
+	// Input Binding
+	UInputComponent* _PlayerInputComponent{};
+	
+	void BindAction(const UInputAction* action, ETriggerEvent triggerEvent, auto lambda)
+	{
+		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(_PlayerInputComponent))
+		{
+			//EnhancedInputComponent->BindAction(action, triggerEvent, object, function);
+			EnhancedInputComponent->BindActionValueLambda(action, triggerEvent, lambda);
+		}
+	}
 
 	void SwitchToPlayerContext();
-	void SwitchToInteractableContext();
-	void SwitchToContext(UInputMappingContext* context);
+	void SwitchToMappingContext(UInputMappingContext* context);
 
 	// Movement and input functions
 	void Move(const FInputActionValue& Value);
@@ -117,8 +110,7 @@ public:
 
 	void Jump();
 
-	void Interaction();
-	void StopInteraction();
+	void Interact();
 
 	// Camera Management
 	void MoveCameraToComponent(USceneComponent* component);

@@ -40,18 +40,6 @@ void APlayerCharacter::BeginPlay()
 	SwitchToMappingContext(PlayerContext);
 }
 
-void APlayerCharacter::SwitchToMappingContext(UInputMappingContext* context)
-{
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->ClearAllMappings();
-			Subsystem->AddMappingContext(context, 1);
-		}
-	}
-}
-
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
 {
@@ -63,7 +51,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	_PlayerInputComponent = PlayerInputComponent;
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(_PlayerInputComponent))
 	{
 		// Bind movement actions
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Move);
@@ -74,24 +63,25 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopCrouch);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &APlayerCharacter::Jump);
 		
-		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Completed, this, &APlayerCharacter::Interaction);
-		EnhancedInputComponent->BindAction(StopInteractAction, ETriggerEvent::Completed, this, &APlayerCharacter::StopInteraction);
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Completed, this, &APlayerCharacter::Interact);
 	}
 }
 
+
+void APlayerCharacter::SwitchToMappingContext(UInputMappingContext* context)
+{
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			Subsystem->ClearAllMappings();
+			Subsystem->AddMappingContext(context, 1);
+		}
+	}
+}
 void APlayerCharacter::SwitchToPlayerContext()
 {
 	SwitchToMappingContext(PlayerContext);
-}
-
-void APlayerCharacter::SwitchToInteractableContext()
-{
-	SwitchToMappingContext(InteractableContext);
-}
-
-void APlayerCharacter::SwitchToContext(UInputMappingContext* context)
-{
-	SwitchToMappingContext(context);
 }
 
 void APlayerCharacter::Move(const FInputActionValue& Value)
@@ -113,7 +103,6 @@ void APlayerCharacter::Move(const FInputActionValue& Value)
 		AddMovementInput(RightDirection, MovementVector.X);
 	}
 }
-
 void APlayerCharacter::Look(const FInputActionValue& Value)
 {
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
@@ -126,7 +115,6 @@ void APlayerCharacter::StartSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 }
-
 void APlayerCharacter::StopSprint()
 {
 	GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
@@ -137,7 +125,6 @@ void APlayerCharacter::StartCrouch()
 	GetCharacterMovement()->MaxWalkSpeed = CrouchSpeed;
 	GetCharacterMovement()->bWantsToCrouch = true;
 }
-
 void APlayerCharacter::StopCrouch()
 {
 	GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
@@ -149,14 +136,9 @@ void APlayerCharacter::Jump()
 	ACharacter::Jump();
 }
 
-void APlayerCharacter::Interaction()
+void APlayerCharacter::Interact()
 {
 	_OnInteract.Broadcast(this);
-}
-
-void APlayerCharacter::StopInteraction()
-{
-	_OnStopInteract.Broadcast(this);
 }
 
 void APlayerCharacter::MoveCameraToComponent(USceneComponent* component)
@@ -166,7 +148,6 @@ void APlayerCharacter::MoveCameraToComponent(USceneComponent* component)
 	SpringArm->SetWorldLocation(component->GetComponentLocation());
 	SpringArm->SetWorldRotation(component->GetComponentRotation());
 }
-
 void APlayerCharacter::ResetCameraToPlayerPos()
 {
 	SpringArm->SetWorldLocation(_OriginalCameraPosition);

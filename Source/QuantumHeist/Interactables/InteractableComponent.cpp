@@ -1,5 +1,6 @@
 #include "InteractableComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
 
 UInteractableComponent::UInteractableComponent()
 {
@@ -39,6 +40,20 @@ void UInteractableComponent::BeginPlay()
 
 	_PlayerOverlapCollision->OnComponentBeginOverlap.AddDynamic(this, &UInteractableComponent::BeginOverlapBox);
 	_PlayerOverlapCollision->OnComponentEndOverlap.AddDynamic(this, &UInteractableComponent::EndOverlapBox);
+
+	// Add all players to the map
+	TArray<AActor*> players{};
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerCharacter::StaticClass(), players);
+	{
+		for (const auto& playerActor : players)
+		{
+			auto player{ Cast<APlayerCharacter>(playerActor) };
+
+			player->_OnInteract.AddDynamic(this, &UInteractableComponent::OnPlayerInteracts);
+			_PlayerOverlaps.Add(player, false);
+			_OnNewPlayerFound.Broadcast(player);
+		}
+	}
 }
 
 
@@ -105,7 +120,6 @@ void UInteractableComponent::BeginOverlapBox(UPrimitiveComponent* overlappedComp
 		{
 			_PlayerOverlaps.Add(playerChar, true);
 			playerChar->_OnInteract.AddDynamic(this, &UInteractableComponent::OnPlayerInteracts);
-			playerChar->_OnStopInteract.AddDynamic(this, &UInteractableComponent::OnPlayerStopsInteract);
 		}
 	}
 }
@@ -132,10 +146,5 @@ void UInteractableComponent::OnPlayerInteracts(APlayerCharacter* playerCharacter
 	{
 		_OnInteract.Broadcast(playerCharacter);
 	}
-}
-
-void UInteractableComponent::OnPlayerStopsInteract(APlayerCharacter* playerCharacter)
-{
-	_OnStopInteract.Broadcast(playerCharacter);
 }
 

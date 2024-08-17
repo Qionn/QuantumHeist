@@ -21,8 +21,6 @@ public:
 
 protected:
 
-	virtual void BeginPlay() override;
-
 	UPROPERTY(VisibleAnywhere)
 	UInteractableComponent* _InteractableComponent{};
 
@@ -34,13 +32,44 @@ protected:
 	UArrowComponent* _CameraArrow;
 
 
+	// Input
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
+	class UInputMappingContext* _HologramContext;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
+	class UInputAction* _StopInteractionAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
+	class UInputAction* _SelectAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Cubes")
+	TSubclassOf<AActor> _BaseRoomBlueprintClass{};
+	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
+	UMaterialInterface* _UnselectedMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Materials")
+	UMaterialInterface* _SelectedMaterial;
+
 private:	
 
 	UFUNCTION()
+	void BindActionsToPlayer(APlayerCharacter* player);
+	UFUNCTION()
 	void OnPlayerInteract(APlayerCharacter* player);
 	UFUNCTION()
-	void OnPlayerStopInteract(APlayerCharacter* player);
+	void OnPlayerStopInteract();
 
+	UFUNCTION()
+	void OnPlayerSelect();
+
+	void ChangeMaterialOnHit(UPrimitiveComponent* HitComponent, bool bIsSelected);
 	
-	FVector _OriginalSpringArmRelativeLocation{};
+	APlayerCharacter* _InteractedPlayer{};
+	APlayerController* _InteractedPlayerController{};
+
+
+	UPrimitiveComponent* _CurrentlySelectedComponent{};
 };
