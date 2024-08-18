@@ -25,12 +25,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Room Rotation")
 	float RotationSpeed = 90.0f;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool m_IsRotating{false};
+
+
 private:
 	TArray<AActor*> m_Rooms;
 	FVector m_RotationPoint;
 	FVector m_RotationAxis;
 	float m_CurrentRotation;
-	bool m_IsRotating;
 
 	void PerformRotation(float DeltaTime);
 };

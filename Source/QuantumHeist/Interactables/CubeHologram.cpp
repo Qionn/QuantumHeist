@@ -23,7 +23,9 @@ void ACubeHologram::BindActionsToPlayer(APlayerCharacter* player)
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(player->_PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(_StopInteractionAction, ETriggerEvent::Completed, this, FName{ "OnPlayerStopInteract" });
-		EnhancedInputComponent->BindAction(_SelectAction, ETriggerEvent::Completed, this, FName{ "OnPlayerSelect" });
+		EnhancedInputComponent->BindAction(_SelectAction, ETriggerEvent::Canceled, this, FName{ "OnPlayerSelect" });
+		
+		EnhancedInputComponent->BindAction(_RotateAction, ETriggerEvent::Triggered, this, FName{ "OnPlayerRotateAction" });
 	}
 }
 
@@ -75,11 +77,11 @@ void ACubeHologram::OnPlayerSelect()
 	{
 		if (auto owner = hitResult.Component->GetOwner())
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, owner->GetActorLabel());;
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, owner->GetActorLabel());;
 
 			if (owner->IsA(_BaseRoomBlueprintClass))
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Hit a Room");
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, "Hit a Room");
 				
 				if (_CurrentlySelectedComponent)
 				{
@@ -104,4 +106,13 @@ void ACubeHologram::ChangeMaterialOnHit(UPrimitiveComponent* HitComponent, bool 
 			HitComponent->SetMaterial(0, MaterialToApply);
 		}
 	}
+}
+
+void ACubeHologram::OnPlayerRotateAction(const FInputActionValue& value)
+{
+	FVector2D lookingVector = value.Get<FVector2D>();
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("Looking with vector: ") + lookingVector.ToString());;
+
+	_OnRoomRotation.Broadcast(FQuat{ {0.f, 0.f, 1.f}, _RotationSpeed * -lookingVector.X });
+	_OnRoomRotation.Broadcast(FQuat{ {0.f, 1.f, 0.f}, _RotationSpeed * lookingVector.Y });
 }

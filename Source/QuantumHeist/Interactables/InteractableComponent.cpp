@@ -77,14 +77,14 @@ void UInteractableComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 				_LookingPlayers.Add(playerInfo.Key);
 
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("Player Looking At Interactable"));;
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("Player Looking At Interactable"));;
 			}
 			else
 			{
 				if (_LookingPlayers.Find(playerInfo.Key) == INDEX_NONE) continue;
 
 				_LookingPlayers.Remove(playerInfo.Key);
-				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("Player Stopped Looking At Interactable"));;
+				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("Player Stopped Looking At Interactable"));;
 
 			}
 		}
