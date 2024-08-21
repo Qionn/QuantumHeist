@@ -7,6 +7,8 @@ URoomRotatorComponent::URoomRotatorComponent()
 
 	m_CurrentRotation = 0.0f;
 	m_IsRotating = false;
+
+	ComponentTags.Add(TEXT("Rotator"));
 }
 
 
@@ -27,7 +29,7 @@ void URoomRotatorComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 }
 
 
-void URoomRotatorComponent::RotateRooms(TArray<AActor*> RoomsToRotate, FVector RotationPoint, FVector RotationAxis)
+void URoomRotatorComponent::RotateRooms(TArray<AActor*> RoomsToRotate, FVector RotationPoint, FVector RotationAxis, RotationDirection rotationDir)
 {
 	if (m_IsRotating) return;
 
@@ -36,19 +38,23 @@ void URoomRotatorComponent::RotateRooms(TArray<AActor*> RoomsToRotate, FVector R
 	m_RotationAxis = RotationAxis;
 	m_CurrentRotation = 0.0f;
 	m_IsRotating = true;
+	m_RotationDirection = int(rotationDir);
 
 	m_RotationAxis.Normalize();
+
+	_OnRotationStarted.Broadcast();
 }
 
 
 void URoomRotatorComponent::PerformRotation(float DeltaTime)
 {
-	float RotationThisFrame = RotationSpeed * DeltaTime;
+	float RotationThisFrame = RotationSpeed * DeltaTime * m_RotationDirection;
 	m_CurrentRotation += RotationThisFrame;
 
-	if (m_CurrentRotation >= 90.0f)
+	if (abs(m_CurrentRotation) >= 90.0f)
 	{
 		RotationThisFrame -= (m_CurrentRotation - 90.0f);
+		_OnRotationCompleted.Broadcast();
 		m_IsRotating = false;
 	}
 

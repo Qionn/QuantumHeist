@@ -7,6 +7,7 @@
 #include "InteractableComponent.h"
 #include "GameFramework/Character.h"
 #include "Components/BoxComponent.h"
+#include "../Rotation/RoomRotatorComponent.h"
 
 #include "CubeHologram.generated.h"
 
@@ -17,24 +18,61 @@ class QUANTUMHEIST_API ACubeHologram : public AActor
 	
 public:	
 
+	struct RotatingRoomInfo
+	{
+		AActor* hologramRoom{};
+		UPrimitiveComponent* hologramRoomComp{};
+
+		FIntVector3 coordinates{};
+
+		bool operator==(const RotatingRoomInfo& other) const
+		{
+			return  hologramRoom == other.hologramRoom &&
+					hologramRoomComp == other.hologramRoomComp &&
+					coordinates == other.coordinates;
+		}
+	};
+
 	ACubeHologram();
+	void BeginPlay() override;
+
+	// Delegates
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoomRotationSignature, FQuat, xRotation);
 	UPROPERTY(BlueprintAssignable, Category = "Rotation")
 	FOnRoomRotationSignature _OnRoomRotation{};
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSelectedRoomsChanged);
+	UPROPERTY(BlueprintAssignable)
+	FOnSelectedRoomsChanged _OnRoomSelectionChanged{};
 
 protected:
 
 	UPROPERTY(VisibleAnywhere)
 	UInteractableComponent* _InteractableComponent{};
 
-	
-	UPROPERTY(EditAnywhere, category = "Mini Rooms")
-	TArray<AActor*> _MiniRooms{};
-
 	UPROPERTY(EditAnywhere)
 	UArrowComponent* _CameraArrow;
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rooms")
+	AActor* _TestRoomsActor{};
+
+	// Variables
+
+	APlayerCharacter* _InteractedPlayer{};
+	APlayerController* _InteractedPlayerController{};
+
+	URoomRotatorComponent* _HologramRotatorComp{};
+	TArray<RotatingRoomInfo> _HologramRooms{};
+
+	TArray<int> _CurrentlySelectedRoomIndices{};
+	int _CurrentlySelectedRoomIndex{ INDEX_NONE };
+
+	TArray<FIntVector3> _Axis{ {1, 0, 0}, {0, 1, 0}, {0, 0, 1} };
+	int _CurrentAxisIndex{ 0 };
+
+	const int _CubeSize{ 3 };
 
 	// Input
 
@@ -50,7 +88,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
 	class UInputAction* _RotateAction;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
+	class UInputAction* _ChangeDirectionAction;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
+	class UInputAction* _PerformRotationAction;
 	// Room
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Cubes")
@@ -70,8 +112,11 @@ protected:
 
 private:	
 
+	// Input Functions
+
 	UFUNCTION()
 	void BindActionsToPlayer(APlayerCharacter* player);
+
 	UFUNCTION()
 	void OnPlayerInteract(APlayerCharacter* player);
 	UFUNCTION()
@@ -82,13 +127,22 @@ private:
 
 	UFUNCTION()
 	void OnPlayerRotateAction(const FInputActionValue& value);
+	UFUNCTION()
+	void OnDirectionChangedAction(const FInputActionValue& value);
 
+	UFUNCTION()
+	void PerformRotation(const FInputActionValue& value);
 
+	// Delegate Functions
+	UFUNCTION()
+	void OnRoomSelectionChanged();
+	UFUNCTION()
+	void RecalculateRoomInfos();
+
+	// Helper Functions
 	void ChangeMaterialOnHit(UPrimitiveComponent* HitComponent, bool bIsSelected);
-	
-	APlayerCharacter* _InteractedPlayer{};
-	APlayerController* _InteractedPlayerController{};
+	FIntVector3 RoomIndexToCoordinates(int index);
+	void CalculateSelectedRoomIndices();
+	void SortRooms(TArray<AActor*>& rooms);
 
-
-	UPrimitiveComponent* _CurrentlySelectedComponent{};
 };

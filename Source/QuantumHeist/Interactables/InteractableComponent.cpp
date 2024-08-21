@@ -8,10 +8,10 @@ UInteractableComponent::UInteractableComponent()
 
 	_ArrowRootComponent = CreateDefaultSubobject<UArrowComponent>(TEXT("ArrowRootComponent"));
 	
-	_PlayerViewCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("ViewCollision"));
-	_PlayerViewCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	_PlayerViewCollision->SetBoxExtent({100.f, 100.f, 100.f});
-	_PlayerViewCollision->SetHiddenInGame(false);
+	_PlayerClickCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("ViewCollision"));
+	_PlayerClickCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	_PlayerClickCollision->SetBoxExtent({100.f, 100.f, 100.f});
+	_PlayerClickCollision->SetHiddenInGame(false);
 
 	
 	_PlayerOverlapCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("OverlapCollision"));
@@ -24,7 +24,7 @@ UInteractableComponent::UInteractableComponent()
 	{
 		owner->SetRootComponent(_ArrowRootComponent);
 
-		_PlayerViewCollision->SetupAttachment(owner->GetRootComponent());
+		_PlayerClickCollision->SetupAttachment(owner->GetRootComponent());
 		_PlayerOverlapCollision->SetupAttachment(owner->GetRootComponent());
 	}
 
@@ -35,7 +35,7 @@ void UInteractableComponent::BeginPlay()
 	Super::BeginPlay();
 
 
-	_PlayerViewCollision->AttachToComponent(GetOwner()->GetRootComponent()->GetAttachParent(), FAttachmentTransformRules::KeepRelativeTransform);
+	_PlayerClickCollision->AttachToComponent(GetOwner()->GetRootComponent()->GetAttachParent(), FAttachmentTransformRules::KeepRelativeTransform);
 	_PlayerOverlapCollision->AttachToComponent(GetOwner()->GetRootComponent()->GetAttachParent(), FAttachmentTransformRules::KeepRelativeTransform);
 
 	_PlayerOverlapCollision->OnComponentBeginOverlap.AddDynamic(this, &UInteractableComponent::BeginOverlapBox);
@@ -49,8 +49,9 @@ void UInteractableComponent::BeginPlay()
 		{
 			auto player{ Cast<APlayerCharacter>(playerActor) };
 
+			_PlayerInfos.Add({ player, false, false });
+
 			player->_OnInteract.AddDynamic(this, &UInteractableComponent::OnPlayerInteracts);
-			_PlayerOverlaps.Add(player, false);
 			_OnNewPlayerFound.Broadcast(player);
 		}
 	}
@@ -61,48 +62,29 @@ void UInteractableComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	for (const auto& playerInfo : _PlayerOverlaps)
+	for (auto& playerInfo : _PlayerInfos)
 	{
-		if (!playerInfo.Key)
-		{
-			_PlayerOverlaps.Remove(playerInfo.Key);
-		}
-
+		if (!playerInfo.player) continue;
 		
-		if (playerInfo.Value)
+		if (playerInfo.inOverlapCollision)
 		{
-			if (IsLookingAtViewCollision(playerInfo.Key))
-			{
-				if (_LookingPlayers.Find(playerInfo.Key) != INDEX_NONE) continue;
-
-				_LookingPlayers.Add(playerInfo.Key);
-
-				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("Player Looking At Interactable"));;
-			}
-			else
-			{
-				if (_LookingPlayers.Find(playerInfo.Key) == INDEX_NONE) continue;
-
-				_LookingPlayers.Remove(playerInfo.Key);
-				//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("Player Stopped Looking At Interactable"));;
-
-			}
+			playerInfo.lookingAtClickCollision = IsLookingAtClickCollision(playerInfo.player);
 		}
 	}
 }
 
-bool UInteractableComponent::IsLookingAtViewCollision(APlayerCharacter* actor)
+bool UInteractableComponent::IsLookingAtClickCollision(APlayerCharacter* actor)
 {
 	FVector start{ actor->Camera->GetComponentLocation() };
 
 	auto cameraRotation{ actor->Camera->GetComponentRotation() };
 	auto cameraDir{ cameraRotation.Vector().GetSafeNormal() };
 
-	FVector end{ start + cameraDir * _RayCastMaxDistance };
+	FVector end{ start + cameraDir * FLT_MAX };
 
 	DrawDebugLine(GetWorld(), start, end, FColor::Black);
 
-	return FMath::LineBoxIntersection(_PlayerViewCollision->Bounds.GetBox(), start, end, end - start);
+	return FMath::LineBoxIntersection(_PlayerClickCollision->Bounds.GetBox(), start, end, end - start);
 }
 
 
@@ -112,14 +94,16 @@ void UInteractableComponent::BeginOverlapBox(UPrimitiveComponent* overlappedComp
 
 	if (APlayerCharacter* playerChar = Cast<APlayerCharacter>(otherActor))
 	{
-		if (auto isPlayerInBox = _PlayerOverlaps.Find(playerChar))
+		if (auto playerInfo = _PlayerInfos.FindByPredicate([&](const PlayerInfo& toCompareInfo) {return playerChar == toCompareInfo.player;}))
 		{
-			*isPlayerInBox = true;
+			playerInfo->inOverlapCollision = true;
 		}
 		else
 		{
-			_PlayerOverlaps.Add(playerChar, true);
+			_PlayerInfos.Add({ playerChar, true, false });
+
 			playerChar->_OnInteract.AddDynamic(this, &UInteractableComponent::OnPlayerInteracts);
+			_OnNewPlayerFound.Broadcast(playerChar);
 		}
 	}
 }
@@ -128,13 +112,10 @@ void UInteractableComponent::EndOverlapBox(UPrimitiveComponent* overlappedCompon
 {
 	if (APlayerCharacter* playerChar = Cast<APlayerCharacter>(otherActor))
 	{
-		if (auto isPlayerInBox = _PlayerOverlaps.Find(playerChar))
+		if (auto playerInfo = _PlayerInfos.FindByPredicate([&](const PlayerInfo& toCompareInfo) {return playerChar == toCompareInfo.player; }))
 		{
-			*isPlayerInBox = false;
-		}
-		if (_LookingPlayers.Find(playerChar) != INDEX_NONE)
-		{
-			_LookingPlayers.Remove(playerChar);
+			playerInfo->inOverlapCollision = false;
+			playerInfo->lookingAtClickCollision = false;
 		}
 	}
 }
@@ -142,7 +123,12 @@ void UInteractableComponent::EndOverlapBox(UPrimitiveComponent* overlappedCompon
 
 void UInteractableComponent::OnPlayerInteracts(APlayerCharacter* playerCharacter)
 {
-	if (_LookingPlayers.Find(playerCharacter) != INDEX_NONE)
+	auto toFindPlayerInfo{ PlayerInfo{ playerCharacter, true, true } };
+
+	if (_PlayerInfos.FindByPredicate([&](const PlayerInfo& other) {return 
+						toFindPlayerInfo.player == other.player &&
+						toFindPlayerInfo.inOverlapCollision == other.inOverlapCollision &&
+						toFindPlayerInfo.lookingAtClickCollision == other.lookingAtClickCollision;}))
 	{
 		_OnInteract.Broadcast(playerCharacter);
 	}

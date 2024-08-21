@@ -21,17 +21,20 @@ public:
 	UInteractableComponent();
 	void BeginPlay() override;
 
+
+	// Components
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collisions")
 	UBoxComponent* _PlayerOverlapCollision;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collisions")
-	UBoxComponent* _PlayerViewCollision;
+	UBoxComponent* _PlayerClickCollision;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collisions")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
 	UArrowComponent* _ArrowRootComponent;
 
 
-	TMap<APlayerCharacter*, bool> _PlayerOverlaps{};
+	// Delegates
 
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewPlayerSignature, APlayerCharacter*, player);
 	UPROPERTY(BlueprintAssignable, Category = "Interactable")
@@ -41,9 +44,14 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Interactable")
 	FOnInteractSignature _OnInteract;
 
-	UPROPERTY(EditAnywhere, Category = "RayCasting")
-	float _RayCastMaxDistance{ 500.f };
 
+	struct PlayerInfo 
+	{
+		APlayerCharacter* player{};
+		bool inOverlapCollision{ false };
+		bool lookingAtClickCollision{ false };
+	};
+	TArray<PlayerInfo> _PlayerInfos{};
 
 protected:
 
@@ -66,10 +74,8 @@ private:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	bool IsLookingAtViewCollision(APlayerCharacter* actor);
+	bool IsLookingAtClickCollision(APlayerCharacter* actor);
 
 	UFUNCTION()
 	void OnPlayerInteracts(APlayerCharacter* player);
-	
-	TArray<APlayerCharacter*> _LookingPlayers{};
 };
