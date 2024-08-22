@@ -40,10 +40,6 @@ public:
 
 	// Delegates
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRoomRotationSignature, FQuat, xRotation);
-	UPROPERTY(BlueprintAssignable, Category = "Rotation")
-	FOnRoomRotationSignature _OnRoomRotation{};
-
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSelectedRoomsChanged);
 	UPROPERTY(BlueprintAssignable)
 	FOnSelectedRoomsChanged _OnRoomSelectionChanged{};
@@ -97,6 +93,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
 	class UInputAction* _PerformRotationAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Input")
+	class UInputAction* _ResetRotationAction;
+
 	// Room
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Cubes")
@@ -136,6 +136,9 @@ private:
 
 	UFUNCTION()
 	void PerformRotationAction(const FInputActionValue& value);
+
+	UFUNCTION()
+	void ResetRotationAction();
 
 	// Delegate Functions
 	UFUNCTION()

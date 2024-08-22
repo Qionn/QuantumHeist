@@ -52,7 +52,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Interactable")
 	FPlayerBroadcastSignature _OnStopLookingAtViewCollision;
 
-
 	struct PlayerInfo 
 	{
 		APlayerCharacter* player{};

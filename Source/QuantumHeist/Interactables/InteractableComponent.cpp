@@ -127,6 +127,7 @@ void UInteractableComponent::EndOverlapBox(UPrimitiveComponent* overlappedCompon
 		{
 			playerInfo->inOverlapCollision = false;
 			playerInfo->lookingAtClickCollision = false;
+			_OnStopLookingAtViewCollision.Broadcast(playerInfo->player);
 		}
 	}
 }

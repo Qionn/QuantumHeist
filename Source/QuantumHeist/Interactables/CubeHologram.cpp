@@ -18,6 +18,7 @@ void ACubeHologram::BeginPlay()
 {
 	Super::BeginPlay();
 
+	
 	if (_HologramCube && _RealCube)
 	{
 		_HologramRotatorComp = _HologramCube->FindComponentByTag<URoomRotatorComponent>(TEXT("Rotator"));
@@ -45,7 +46,7 @@ void ACubeHologram::BeginPlay()
 			AActor* realRoom{ realRooms[index]};
 
 			toAddRoom.hologramRoom = hologramRoom;
-			toAddRoom.hologramRoomComp = hologramRoom->FindComponentByTag<UPrimitiveComponent>(TEXT("Cube"));
+			toAddRoom.hologramRoomComp = hologramRoom->FindComponentByTag<UPrimitiveComponent>(TEXT("HologramCube"));
 			toAddRoom.realRoom = realRoom;
 			toAddRoom.coordinates = RoomIndexToCoordinates(index);
 
@@ -65,6 +66,7 @@ void ACubeHologram::BindActionsToPlayer(APlayerCharacter* player)
 		EnhancedInputComponent->BindAction(_RotateAction, ETriggerEvent::Triggered, this, FName{ "OnPlayerRotateAction" });
 		EnhancedInputComponent->BindAction(_ChangeDirectionAction, ETriggerEvent::Started, this, FName{ "OnDirectionChangedAction" });
 		EnhancedInputComponent->BindAction(_PerformRotationAction, ETriggerEvent::Started, this, FName{ "PerformRotationAction" });
+		EnhancedInputComponent->BindAction(_ResetRotationAction, ETriggerEvent::Started, this, FName{ "ResetRotationAction" });
 	}
 }
 
@@ -80,6 +82,8 @@ void ACubeHologram::OnPlayerInteract(APlayerCharacter* player)
 
 	_InteractedPlayerController = Cast<APlayerController>(player->GetController());
 	_InteractedPlayerController->bShowMouseCursor = true;
+	FInputModeGameAndUI InputMode{};
+	_InteractedPlayerController->SetInputMode(InputMode);
 }
 
 void ACubeHologram::OnPlayerStopInteract()
@@ -103,6 +107,7 @@ void ACubeHologram::OnPlayerStopInteract()
 void ACubeHologram::OnPlayerSelect()
 {
 	if (!_InteractedPlayer) return;
+	if (_HologramRotatorComp->IsRotating()) return;
 
 	FHitResult hitResult{};
 	_InteractedPlayerController->GetHitResultUnderCursor(ECC_WorldDynamic, false, hitResult);
@@ -114,6 +119,8 @@ void ACubeHologram::OnPlayerSelect()
 			if (owner->IsA(_BaseRoomBlueprintClass))
 			{
 				auto hitRoomInfo = _HologramRooms.FindByPredicate([&](const RotatingRoomInfo& room) {return room.hologramRoomComp == hitResult.Component.Get(); });
+				if (!hitRoomInfo) return;
+				
 				_CurrentlySelectedRoomIndex = _HologramRooms.Find(*hitRoomInfo);
 
 				if (_CurrentlySelectedRoomIndex != INDEX_NONE)
@@ -131,8 +138,8 @@ void ACubeHologram::OnPlayerRotateAction(const FInputActionValue& value)
 
 	FVector2D lookingVector = value.Get<FVector2D>();
 
-	_OnRoomRotation.Broadcast(FQuat{ {0.f, 0.f, 1.f}, _RotationSpeed * -lookingVector.X });
-	_OnRoomRotation.Broadcast(FQuat{ {0.f, 1.f, 0.f}, _RotationSpeed * lookingVector.Y });
+	_HologramCube->AddActorWorldRotation(FQuat{ {0.f, 0.f, 1.f}, _RotationSpeed * -lookingVector.X });
+	_HologramCube->AddActorWorldRotation(FQuat{ {0.f, 1.f, 0.f}, _RotationSpeed * lookingVector.Y });
 }
 
 void ACubeHologram::OnDirectionChangedAction(const FInputActionValue& value)
@@ -169,6 +176,13 @@ void ACubeHologram::PerformRotationAction(const FInputActionValue& value)
 	PerformRotation(_HologramRotatorComp, hologramToRotateRooms, coordinates, _HologramCube, rotationDir);
 	PerformRotation(_RealRotatorComp, realToRotateRooms, coordinates, _RealCube, rotationDir);
 
+}
+
+void ACubeHologram::ResetRotationAction()
+{
+	if (_HologramRotatorComp->IsRotating()) return;
+
+	_HologramCube->SetActorRelativeRotation(FQuat{});
 }
 
 //*******
