@@ -143,13 +143,12 @@ void APlayerCharacter::Interact()
 
 void APlayerCharacter::MoveCameraToComponent(USceneComponent* component)
 {
-	_OriginalCameraPosition = SpringArm->GetComponentLocation();
+	_OriginalCameraTransform = SpringArm->GetRelativeTransform();
 
 	SpringArm->SetWorldLocation(component->GetComponentLocation());
 	SpringArm->SetWorldRotation(component->GetComponentRotation());
 }
 void APlayerCharacter::ResetCameraToPlayerPos()
 {
-	SpringArm->SetWorldLocation(_OriginalCameraPosition);
-	SpringArm->SetRelativeRotation(FQuat{});
+	SpringArm->SetRelativeTransform(_OriginalCameraTransform);
 }

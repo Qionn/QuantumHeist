@@ -21,6 +21,7 @@ public:
 	UInteractableComponent();
 	void BeginPlay() override;
 
+	void StopPlayerInteracting(APlayerCharacter* player);
 
 	// Components
 
@@ -36,13 +37,20 @@ public:
 
 	// Delegates
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNewPlayerSignature, APlayerCharacter*, player);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerBroadcastSignature, APlayerCharacter*, player);
 	UPROPERTY(BlueprintAssignable, Category = "Interactable")
-	FOnNewPlayerSignature _OnNewPlayerFound;
+	FPlayerBroadcastSignature _OnNewPlayerFound;
 
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnInteractSignature, APlayerCharacter*, player);
 	UPROPERTY(BlueprintAssignable, Category = "Interactable")
-	FOnInteractSignature _OnInteract;
+	FPlayerBroadcastSignature _OnInteract;
+	UPROPERTY(BlueprintAssignable, Category = "Interactable")
+	FPlayerBroadcastSignature _OnStopInteract;
+
+
+	UPROPERTY(BlueprintAssignable, Category = "Interactable")
+	FPlayerBroadcastSignature _OnStartLookingAtViewCollision;
+	UPROPERTY(BlueprintAssignable, Category = "Interactable")
+	FPlayerBroadcastSignature _OnStopLookingAtViewCollision;
 
 
 	struct PlayerInfo 

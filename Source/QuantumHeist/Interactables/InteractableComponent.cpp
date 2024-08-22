@@ -68,7 +68,18 @@ void UInteractableComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		
 		if (playerInfo.inOverlapCollision)
 		{
-			playerInfo.lookingAtClickCollision = IsLookingAtClickCollision(playerInfo.player);
+			bool looking{ IsLookingAtClickCollision(playerInfo.player) };
+
+			if (looking && playerInfo.lookingAtClickCollision == false)
+			{
+				_OnStartLookingAtViewCollision.Broadcast(playerInfo.player);
+			}
+			else if (!looking && playerInfo.lookingAtClickCollision == true)
+			{
+				_OnStopLookingAtViewCollision.Broadcast(playerInfo.player);
+			}
+
+			playerInfo.lookingAtClickCollision = looking;
 		}
 	}
 }
@@ -132,5 +143,10 @@ void UInteractableComponent::OnPlayerInteracts(APlayerCharacter* playerCharacter
 	{
 		_OnInteract.Broadcast(playerCharacter);
 	}
+}
+
+void UInteractableComponent::StopPlayerInteracting(APlayerCharacter* player)
+{
+	_OnStopInteract.Broadcast(player);
 }
 

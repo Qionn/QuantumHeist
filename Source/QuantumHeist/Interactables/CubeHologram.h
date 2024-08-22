@@ -21,6 +21,8 @@ public:
 	struct RotatingRoomInfo
 	{
 		AActor* hologramRoom{};
+		AActor* realRoom{};
+
 		UPrimitiveComponent* hologramRoomComp{};
 
 		FIntVector3 coordinates{};
@@ -48,7 +50,7 @@ public:
 
 protected:
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UInteractableComponent* _InteractableComponent{};
 
 	UPROPERTY(EditAnywhere)
@@ -56,14 +58,16 @@ protected:
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rooms")
-	AActor* _TestRoomsActor{};
+	AActor* _HologramCube{};
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rooms")
+	AActor* _RealCube{};
 
 	// Variables
-
 	APlayerCharacter* _InteractedPlayer{};
 	APlayerController* _InteractedPlayerController{};
 
 	URoomRotatorComponent* _HologramRotatorComp{};
+	URoomRotatorComponent* _RealRotatorComp{};
 	TArray<RotatingRoomInfo> _HologramRooms{};
 
 	TArray<int> _CurrentlySelectedRoomIndices{};
@@ -131,7 +135,7 @@ private:
 	void OnDirectionChangedAction(const FInputActionValue& value);
 
 	UFUNCTION()
-	void PerformRotation(const FInputActionValue& value);
+	void PerformRotationAction(const FInputActionValue& value);
 
 	// Delegate Functions
 	UFUNCTION()
@@ -144,5 +148,7 @@ private:
 	FIntVector3 RoomIndexToCoordinates(int index);
 	void CalculateSelectedRoomIndices();
 	void SortRooms(TArray<AActor*>& rooms);
+
+	void PerformRotation(URoomRotatorComponent* rotatorComp, TArray<AActor*> rooms, TArray<FIntVector> coordinates, AActor* cubeActor, RotationDirection dir);
 
 };

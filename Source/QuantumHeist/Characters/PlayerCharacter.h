@@ -74,7 +74,7 @@ protected:
 	
 
 	// Camera Management
-	FVector _OriginalCameraPosition{};
+	FTransform _OriginalCameraTransform{};
 
 public:
 	// Called every frame
